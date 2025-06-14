@@ -85,22 +85,23 @@ for col, encoder in encoders.items():
         st.warning(f"Nilai '{input_data[col][0]}' pada kolom '{col}' tidak dikenal oleh model.")
         input_data[col] = 0  # fallback ke 0 jika nilai tak dikenal
 
-# Drop kolom yang tidak digunakan
-if 'Smoking' in input_data.columns:
-    input_data.drop(columns=['Smoking'], inplace=True)
-
-# Validasi urutan kolom sesuai scaler
+# Cek kolom yang dibutuhkan oleh scaler
 if hasattr(scaler, "feature_names_in_"):
     try:
         input_data = input_data[scaler.feature_names_in_]
     except KeyError as e:
-        st.error(f"Kolom input tidak sesuai dengan yang diharapkan oleh scaler: {e}")
+        st.error(f"Kolom input tidak cocok dengan fitur saat training: {e}")
         st.stop()
 else:
-    st.error("Scaler tidak memiliki atribut 'feature_names_in_'. Gunakan sklearn >= 1.0 dan pastikan scaler di-fit dengan dataframe.")
+    st.error("Scaler tidak memiliki atribut 'feature_names_in_'. Pastikan menggunakan sklearn >= 1.0.")
     st.stop()
 
-# Transformasi dengan scaler (semua kolom)
+# Debugging sebelum scaling
+st.write("🔍 Kolom input untuk model:", input_data.columns.tolist())
+st.write("📐 Bentuk input sebelum scaling:", input_data.shape)
+st.write("📐 Model mengharapkan fitur:", getattr(model, 'n_features_in_', 'Tidak tersedia'))
+
+# Transformasi
 input_scaled = scaler.transform(input_data)
 
 # Prediksi
