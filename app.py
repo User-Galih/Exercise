@@ -33,6 +33,9 @@ except FileNotFoundError:
 st.title("Prediksi Tingkat Obesitas")
 st.write("Aplikasi ini memprediksi tingkat obesitas berdasarkan karakteristik individu.")
 
+st.write("Kolom input ke scaler:", input_data[numeric_columns].columns.tolist())
+st.write("Kolom scaler saat fit:", scaler.feature_names_in_.tolist())  # jika pakai sklearn >=1.0
+
 # Input Form
 st.header("Masukkan Data Individu")
 
