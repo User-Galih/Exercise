@@ -33,8 +33,6 @@ except FileNotFoundError:
 st.title("Prediksi Tingkat Obesitas")
 st.write("Aplikasi ini memprediksi tingkat obesitas berdasarkan karakteristik individu.")
 
-st.write("Kolom input ke scaler:", input_data[numeric_columns].columns.tolist())
-st.write("Kolom scaler saat fit:", scaler.feature_names_in_.tolist())  # jika pakai sklearn >=1.0
 
 # Input Form
 st.header("Masukkan Data Individu")
@@ -75,6 +73,20 @@ input_data = pd.DataFrame({
     'AlcoholConsumption': [calc],
     'Transportation': [mtrans]
 })
+
+# Tentukan kolom numerik
+numeric_columns = [col for col in expected_cols if col not in [
+    'AlcoholConsumption', 'SnackConsumption', 'Gender',
+    'FamilyHistoryOverweight', 'HighCalorieFood', 'CalorieMonitoring', 'Transportation'
+]]
+
+# Debug: tampilkan kolom
+st.write("Kolom input ke scaler:", input_data[numeric_columns].columns.tolist())
+
+# Jika menggunakan sklearn >= 1.0
+if hasattr(scaler, "feature_names_in_"):
+    st.write("Kolom saat scaler di-fit:", scaler.feature_names_in_.tolist())
+
 
 # Proses Encoding
 for col, mapping in ordinal_mappings.items():
