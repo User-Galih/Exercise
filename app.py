@@ -73,39 +73,33 @@ input_data = pd.DataFrame({
     'Transportation': [mtrans]
 })
 
-# Encoding ordinal
+# Proses encoding ordinal
 for col, mapping in ordinal_mappings.items():
     if col in input_data.columns:
         input_data[col] = input_data[col].map(mapping)
 
-# Encoding LabelEncoder
+# Proses encoding label
 for col, encoder in encoders.items():
     if col in input_data.columns:
         try:
             input_data[col] = encoder.transform(input_data[col])
         except ValueError:
-            st.warning(f"Nilai '{input_data[col][0]}' pada kolom '{col}' tidak dikenal oleh model. Diisi nilai 0.")
+            st.warning(f"Nilai '{input_data[col][0]}' di kolom '{col}' tidak dikenal. Diisi 0.")
             input_data[col] = 0
 
-# Validasi kolom sesuai dengan scaler
+# Pastikan urutan fitur sesuai dengan scaler
 if hasattr(scaler, "feature_names_in_"):
     expected_cols = list(scaler.feature_names_in_)
-    missing_cols = set(expected_cols) - set(input_data.columns)
-
-    if missing_cols:
-        st.error(f"Ada kolom yang hilang dari input: {missing_cols}")
+    missing = set(expected_cols) - set(input_data.columns)
+    if missing:
+        st.error(f"Kolom yang hilang: {missing}")
         st.stop()
-
-    try:
-        input_data = input_data[expected_cols]
-    except KeyError as e:
-        st.error(f"Kolom input tidak cocok dengan fitur saat training: {e}")
-        st.stop()
+    input_data = input_data[expected_cols]
 else:
-    st.error("Scaler tidak memiliki atribut 'feature_names_in_'. Pastikan menggunakan sklearn >= 1.0.")
+    st.error("Scaler tidak memiliki feature_names_in_. Pastikan pakai scikit-learn versi >=1.0")
     st.stop()
 
-# Debug
+# Debug info
 st.write("🔍 Kolom input untuk model:", input_data.columns.tolist())
 st.write("📐 Bentuk input sebelum scaling:", input_data.shape)
 st.write("📐 Model mengharapkan fitur:", getattr(model, 'n_features_in_', 'Tidak tersedia'))
