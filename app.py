@@ -4,7 +4,7 @@ import numpy as np
 import joblib
 import os
 
-# Load model dan scaler dari file lokal (gunakan joblib)
+# Load model dan scaler dari file lokal
 model_path = 'best_obesity_model.pkl'
 scaler_path = 'scaler.pkl'
 ordinal_mapping_path = 'ordinal_mappings.pkl'
@@ -29,10 +29,23 @@ except FileNotFoundError:
     st.error("Pastikan semua file .pkl berada di direktori yang sama dengan aplikasi Streamlit.")
     st.stop()
 
+# Inisialisasi kolom yang diharapkan (sesuai training)
+expected_cols = [
+    'Gender', 'Age', 'Height', 'Weight', 'FamilyHistoryOverweight',
+    'HighCalorieFood', 'VegetableConsumption', 'MealFrequency', 'SnackConsumption',
+    'WaterIntake', 'CalorieMonitoring', 'PhysicalActivity', 'TechnologyUse',
+    'AlcoholConsumption', 'Transportation'
+]
+
+# Tentukan kolom numerik untuk scaling
+numeric_columns = [col for col in expected_cols if col not in [
+    'AlcoholConsumption', 'SnackConsumption', 'Gender',
+    'FamilyHistoryOverweight', 'HighCalorieFood', 'CalorieMonitoring', 'Transportation'
+]]
+
 # Judul Aplikasi
 st.title("Prediksi Tingkat Obesitas")
 st.write("Aplikasi ini memprediksi tingkat obesitas berdasarkan karakteristik individu.")
-
 
 # Input Form
 st.header("Masukkan Data Individu")
@@ -74,53 +87,35 @@ input_data = pd.DataFrame({
     'Transportation': [mtrans]
 })
 
-# Tentukan kolom numerik
-numeric_columns = [col for col in expected_cols if col not in [
-    'AlcoholConsumption', 'SnackConsumption', 'Gender',
-    'FamilyHistoryOverweight', 'HighCalorieFood', 'CalorieMonitoring', 'Transportation'
-]]
-
-# Debug: tampilkan kolom
-st.write("Kolom input ke scaler:", input_data[numeric_columns].columns.tolist())
-
-# Jika menggunakan sklearn >= 1.0
-if hasattr(scaler, "feature_names_in_"):
-    st.write("Kolom saat scaler di-fit:", scaler.feature_names_in_.tolist())
-
-
-# Proses Encoding
+# Proses Encoding ordinal
 for col, mapping in ordinal_mappings.items():
     input_data[col] = input_data[col].map(mapping)
 
+# Proses Encoding LabelEncoder
 for col, encoder in encoders.items():
     try:
         input_data[col] = encoder.transform(input_data[col])
     except ValueError:
         st.warning(f"Nilai '{input_data[col][0]}' pada kolom '{col}' tidak dikenal oleh model.")
-        input_data[col] = 0
+        input_data[col] = 0  # fallback ke 0 jika nilai tak dikenal
 
-# Drop kolom Smoking karena tidak digunakan dalam training
+# Drop kolom yang tidak digunakan
 if 'Smoking' in input_data.columns:
-    input_data = input_data.drop(columns=['Smoking'])
+    input_data.drop(columns=['Smoking'], inplace=True)
 
-# Pastikan urutan kolom sesuai dengan training
-expected_cols = [
-    'Gender', 'Age', 'Height', 'Weight', 'FamilyHistoryOverweight',
-    'HighCalorieFood', 'VegetableConsumption', 'MealFrequency', 'SnackConsumption',
-    'WaterIntake', 'CalorieMonitoring', 'PhysicalActivity', 'TechnologyUse',
-    'AlcoholConsumption', 'Transportation'
-]
+# Validasi dan reordering kolom
 try:
     input_data = input_data[expected_cols]
 except KeyError as e:
-    st.error(f"Kolom hilang: {e}")
+    st.error(f"Kolom hilang atau tidak valid: {e}")
     st.stop()
 
-# Scaling
-numeric_columns = [col for col in expected_cols if col not in [
-    'AlcoholConsumption', 'SnackConsumption', 'Gender',
-    'FamilyHistoryOverweight', 'HighCalorieFood', 'CalorieMonitoring', 'Transportation'
-]]
+# Debug kolom
+st.write("Kolom input ke scaler:", input_data[numeric_columns].columns.tolist())
+if hasattr(scaler, "feature_names_in_"):
+    st.write("Kolom saat scaler di-fit:", scaler.feature_names_in_.tolist())
+
+# Scaling kolom numerik
 input_data[numeric_columns] = scaler.transform(input_data[numeric_columns])
 
 # Prediksi
