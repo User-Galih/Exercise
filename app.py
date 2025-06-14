@@ -29,20 +29,6 @@ except FileNotFoundError:
     st.error("Pastikan semua file .pkl berada di direktori yang sama dengan aplikasi Streamlit.")
     st.stop()
 
-# Inisialisasi kolom yang diharapkan (sesuai training)
-expected_cols = [
-    'Gender', 'Age', 'Height', 'Weight', 'FamilyHistoryOverweight',
-    'HighCalorieFood', 'VegetableConsumption', 'MealFrequency', 'SnackConsumption',
-    'WaterIntake', 'CalorieMonitoring', 'PhysicalActivity', 'TechnologyUse',
-    'AlcoholConsumption', 'Transportation'
-]
-
-# Tentukan kolom numerik untuk scaling
-numeric_columns = [col for col in expected_cols if col not in [
-    'AlcoholConsumption', 'SnackConsumption', 'Gender',
-    'FamilyHistoryOverweight', 'HighCalorieFood', 'CalorieMonitoring', 'Transportation'
-]]
-
 # Judul Aplikasi
 st.title("Prediksi Tingkat Obesitas")
 st.write("Aplikasi ini memprediksi tingkat obesitas berdasarkan karakteristik individu.")
@@ -103,24 +89,23 @@ for col, encoder in encoders.items():
 if 'Smoking' in input_data.columns:
     input_data.drop(columns=['Smoking'], inplace=True)
 
-# Validasi dan reordering kolom
-try:
-    input_data = input_data[expected_cols]
-except KeyError as e:
-    st.error(f"Kolom hilang atau tidak valid: {e}")
+# Validasi urutan kolom sesuai scaler
+if hasattr(scaler, "feature_names_in_"):
+    try:
+        input_data = input_data[scaler.feature_names_in_]
+    except KeyError as e:
+        st.error(f"Kolom input tidak sesuai dengan yang diharapkan oleh scaler: {e}")
+        st.stop()
+else:
+    st.error("Scaler tidak memiliki atribut 'feature_names_in_'. Gunakan sklearn >= 1.0 dan pastikan scaler di-fit dengan dataframe.")
     st.stop()
 
-# Debug kolom
-st.write("Kolom input ke scaler:", input_data[numeric_columns].columns.tolist())
-if hasattr(scaler, "feature_names_in_"):
-    st.write("Kolom saat scaler di-fit:", scaler.feature_names_in_.tolist())
-
-# Scaling kolom numerik
-input_data[numeric_columns] = scaler.transform(input_data[numeric_columns])
+# Transformasi dengan scaler (semua kolom)
+input_scaled = scaler.transform(input_data)
 
 # Prediksi
 if st.button("Predict Obesity Level"):
-    prediction_encoded = model.predict(input_data)
+    prediction_encoded = model.predict(input_scaled)
 
     obesity_level_mapping = {
         0: 'Clinical_Obesity_I',
